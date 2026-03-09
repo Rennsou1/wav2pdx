@@ -1,0 +1,29 @@
+# 构建产物
+build/
+*.exe
+*.o
+*.obj
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# 临时 / 测试文件
+test_output.txt
+errors.txt
+*.log
+
+# 编辑器
+.vscode/
+.vs/
+*.swp
+*~
+*.sh
+
+# OS
+Thumbs.db
+.DS_Store
+
+# 私人笔记
+note.doc
