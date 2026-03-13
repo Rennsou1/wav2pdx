@@ -72,7 +72,7 @@ struct WavData {
     bool load(const char* filename) {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) {
-            fprintf(stderr, "错误: 无法打开文件 '%s'\n", filename);
+            fprintf(stderr, "Error: Cannot open file '%s'\n", filename);
             return false;
         }
 
@@ -85,14 +85,14 @@ struct WavData {
         file.close();
 
         if (file_size < 44) {
-            fprintf(stderr, "错误: 文件太小，不是有效的 WAV 文件\n");
+            fprintf(stderr, "Error: File too small, not a valid WAV file\n");
             return false;
         }
 
         // 验证 RIFF 头
         if (memcmp(buf.data(), "RIFF", 4) != 0 ||
             memcmp(buf.data() + 8, "WAVE", 4) != 0) {
-            fprintf(stderr, "错误: 不是有效的 RIFF/WAVE 文件\n");
+            fprintf(stderr, "Error: Not a valid RIFF/WAVE file\n");
             return false;
         }
 
@@ -118,7 +118,7 @@ struct WavData {
         }
 
         if (!fmt_data || !pcm_data) {
-            fprintf(stderr, "错误: WAV 文件缺少 fmt 或 data chunk\n");
+            fprintf(stderr, "Error: WAV file missing fmt or data chunk\n");
             return false;
         }
 
@@ -132,7 +132,7 @@ struct WavData {
         if (audio_format == 0xFFFE) {
             // fmt chunk 至少需要 40 字节 (标准 18 + cbSize 里的 22 字节扩展)
             if (fmt_chunk_size < 40) {
-                fprintf(stderr, "错误: EXTENSIBLE fmt chunk 太短 (%u 字节)\n", fmt_chunk_size);
+                fprintf(stderr, "Error: EXTENSIBLE fmt chunk too short (%u bytes)\n", fmt_chunk_size);
                 return false;
             }
             // SubFormat GUID 位于 fmt_data + 24，前 2 字节是真实格式码
@@ -146,12 +146,12 @@ struct WavData {
         // 支持 PCM (1) 和 IEEE Float (3)
         bool is_float = (audio_format == 3);
         if (audio_format != 1 && audio_format != 3) {
-            fprintf(stderr, "错误: 不支持的 WAV 格式 (format=%d，仅支持 PCM 和 IEEE Float)\n", audio_format);
+            fprintf(stderr, "Error: Unsupported WAV format (format=%d, only PCM and IEEE Float supported)\n", audio_format);
             return false;
         }
 
         if (num_channels < 1 || num_channels > 2) {
-            fprintf(stderr, "错误: 仅支持单声道或立体声 (channels=%d)\n", num_channels);
+            fprintf(stderr, "Error: Only mono or stereo supported (channels=%d)\n", num_channels);
             return false;
         }
 
@@ -176,7 +176,7 @@ struct WavData {
                     // 64-bit double LE
                     memcpy(&val, sp, 8);
                 } else {
-                    fprintf(stderr, "错误: 不支持 %d-bit float WAV\n", bits_per_sample);
+                    fprintf(stderr, "Error: Unsupported %d-bit float WAV\n", bits_per_sample);
                     return false;
                 }
                 // 钳位到 [-1.0, 1.0] 并缩放到 int16
@@ -206,7 +206,7 @@ struct WavData {
                         samples[i] = (int16_t)((sp[2] | (sp[3] << 8)));
                         break;
                     default:
-                        fprintf(stderr, "错误: 不支持 %d-bit WAV\n", bits_per_sample);
+                        fprintf(stderr, "Error: Unsupported %d-bit WAV\n", bits_per_sample);
                         return false;
                 }
             }
@@ -426,7 +426,7 @@ static bool write_pdx(const char* filename, const std::vector<PdxSlot>& slots) {
         int b = sorted_slots[i].bank;
         int idx = sorted_slots[i].slot_index;
         if (idx < 0 || idx >= PDX_NUM_SLOTS) {
-            fprintf(stderr, "错误: bank %d 槽位号 %d 超出范围 (0-%d)\n",
+            fprintf(stderr, "Error: bank %d slot %d out of range (0-%d)\n",
                     b, idx, PDX_NUM_SLOTS - 1);
             return false;
         }
@@ -438,7 +438,7 @@ static bool write_pdx(const char* filename, const std::vector<PdxSlot>& slots) {
     // 写入文件
     std::ofstream file(filename, std::ios::binary);
     if (!file.is_open()) {
-        fprintf(stderr, "错误: 无法创建输出文件 '%s'\n", filename);
+        fprintf(stderr, "Error: Cannot create output file '%s'\n", filename);
         return false;
     }
 
@@ -494,12 +494,12 @@ static bool write_pdx(const char* filename, const std::vector<PdxSlot>& slots) {
             // Tail Magic: "rXDP"（从文件尾快速定位用）
             file.write("rXDP", 4);
 
-            printf("  采样率元数据: %zu 个可变频率槽\n", rate_entries.size());
+            printf("  Sample rate metadata: %zu variable-frequency slots\n", rate_entries.size());
         }
     }
 
     if (num_banks > 1) {
-        printf("  PDX 格式: EX-PDX (%d 个 bank)\n", num_banks);
+        printf("  PDX format: EX-PDX (%d banks)\n", num_banks);
     }
 
     file.close();
@@ -585,7 +585,7 @@ static bool resolve_f_mode(PcmDriver driver, int f_val, FModeInfo& info) {
 
     // 以下需要驱动支持
     if (driver == DRIVER_NONE) {
-        fprintf(stderr, "错误: F%d 需要 PCM 驱动 (#ex-pcm 0 仅支持 F0-F4)\n", f_val);
+        fprintf(stderr, "Error: F%d requires PCM driver (#ex-pcm 0 only supports F0-F4)\n", f_val);
         return false;
     }
 
@@ -611,7 +611,7 @@ static bool resolve_f_mode(PcmDriver driver, int f_val, FModeInfo& info) {
         };
         int idx = f_val - 5;
         if (idx < 0 || idx >= 8) {
-            fprintf(stderr, "错误: PCM8A 不支持 F%d (有效范围: F0-F12)\n", f_val);
+            fprintf(stderr, "Error: PCM8A does not support F%d (valid range: F0-F12)\n", f_val);
             return false;
         }
         info.format = pcm8a_modes[idx].fmt;
@@ -719,7 +719,7 @@ static bool resolve_f_mode(PcmDriver driver, int f_val, FModeInfo& info) {
         return true;
     }
 
-    fprintf(stderr, "错误: PCM8++ 不支持 F%d (有效范围: F0-F41)\n", f_val);
+    fprintf(stderr, "Error: PCM8++ does not support F%d (valid range: F0-F41)\n", f_val);
     return false;
 }
 
@@ -742,8 +742,22 @@ struct VoiceConfig {
     PcmDriver driver;         // 目标驱动
     int rate_override;        // 采样率覆盖（0=使用 F 值默认）
     int stereo_override;      // 声道覆盖（-1=不覆盖, 0=mono, 1=stereo）
+    int volume;               // 音量百分比（100=不变, 50=减半, 200=加倍）
     std::string wav_filename; // 音频文件路径（WAV 直接加载，其他格式 ffmpeg 转码）
 };
+
+/// 对采样数据应用音量缩放（重采样后、编码前调用）
+static void apply_volume(std::vector<int16_t>& samples, int volume_percent) {
+    if (volume_percent == 100) return;  // 无变化
+    double scale = volume_percent / 100.0;
+    for (size_t i = 0; i < samples.size(); i++) {
+        double val = samples[i] * scale;
+        // 钳位到 int16_t 范围
+        if (val > 32767.0)  val = 32767.0;
+        if (val < -32768.0) val = -32768.0;
+        samples[i] = (int16_t)val;
+    }
+}
 
 /// 处理单个 voice 配置，生成 PDX 槽数据
 static bool process_voice(const VoiceConfig& cfg, PdxSlot& slot) {
@@ -755,8 +769,8 @@ static bool process_voice(const VoiceConfig& cfg, PdxSlot& slot) {
 
     // 采样率覆盖（可变频率模式要求必须指定 rate_override）
     if (mode.rate == 0 && cfg.rate_override <= 0) {
-        fprintf(stderr, "错误: F%d (可变频率) 需要显式指定采样率，请使用逗号参数\n"
-                        "       例如: 0=vocal.wav,22050\n", cfg.f_mode);
+        fprintf(stderr, "Error: F%d (variable frequency) requires explicit sample rate\n"
+                        "       Example: 0=vocal.wav,22050\n", cfg.f_mode);
         return false;
     }
     int target_rate = (cfg.rate_override > 0) ? cfg.rate_override : mode.rate;
@@ -787,7 +801,7 @@ static bool process_voice(const VoiceConfig& cfg, PdxSlot& slot) {
 
     // WAV 原生加载失败 → 回退 ffmpeg 转码（如 WAVE_FORMAT_EXTENSIBLE 等）
     if (!load_ok && !need_cleanup) {
-        fprintf(stderr, "  注意: WAV 原生解析失败，尝试 ffmpeg 转码...\n");
+        fprintf(stderr, "  Note: WAV native parse failed, trying ffmpeg transcode...\n");
         if (transcode_to_wav(cfg.wav_filename.c_str(), temp_wav_path)) {
             load_ok = wav.load(temp_wav_path.c_str());
             need_cleanup = true;
@@ -814,10 +828,11 @@ static bool process_voice(const VoiceConfig& cfg, PdxSlot& slot) {
         // ADPCM 编码
         std::vector<int16_t> mono = wav.to_mono();
         std::vector<int16_t> resampled = resample(mono, wav.sample_rate, target_rate);
+        apply_volume(resampled, cfg.volume);
         AdpcmEncoder encoder;
         slot.data = encoder.encode(resampled);
 
-        printf("  bank %d slot %2d: ADPCM @ %d Hz, %zu 字节 (F%d, mode=0x%02X)\n",
+        printf("  bank %d slot %2d: ADPCM @ %d Hz, %zu bytes (F%d, mode=0x%02X)\n",
                cfg.bank, cfg.slot_index, target_rate, slot.data.size(),
                cfg.f_mode, mode.mode_code);
 
@@ -825,6 +840,8 @@ static bool process_voice(const VoiceConfig& cfg, PdxSlot& slot) {
         if (mode.stereo && wav.num_channels == 2) {
             std::vector<int16_t> left  = resample(wav.get_channel(0), wav.sample_rate, target_rate);
             std::vector<int16_t> right = resample(wav.get_channel(1), wav.sample_rate, target_rate);
+            apply_volume(left, cfg.volume);
+            apply_volume(right, cfg.volume);
             int frames = (int)std::min(left.size(), right.size());
             std::vector<int16_t> interleaved(frames * 2);
             for (int i = 0; i < frames; i++) {
@@ -835,10 +852,11 @@ static bool process_voice(const VoiceConfig& cfg, PdxSlot& slot) {
         } else {
             std::vector<int16_t> mono = wav.to_mono();
             std::vector<int16_t> resampled = resample(mono, wav.sample_rate, target_rate);
+            apply_volume(resampled, cfg.volume);
             slot.data = encode_pcm16(resampled);
         }
 
-        printf("  bank %d slot %2d: PCM16 %s @ %d Hz, %zu 字节 (F%d, mode=0x%02X)\n",
+        printf("  bank %d slot %2d: PCM16 %s @ %d Hz, %zu bytes (F%d, mode=0x%02X)\n",
                cfg.bank, cfg.slot_index, mode.stereo ? "stereo" : "mono",
                target_rate, slot.data.size(), cfg.f_mode, mode.mode_code);
 
@@ -846,6 +864,8 @@ static bool process_voice(const VoiceConfig& cfg, PdxSlot& slot) {
         if (mode.stereo && wav.num_channels == 2) {
             std::vector<int16_t> left  = resample(wav.get_channel(0), wav.sample_rate, target_rate);
             std::vector<int16_t> right = resample(wav.get_channel(1), wav.sample_rate, target_rate);
+            apply_volume(left, cfg.volume);
+            apply_volume(right, cfg.volume);
             int frames = (int)std::min(left.size(), right.size());
             std::vector<int16_t> interleaved(frames * 2);
             for (int i = 0; i < frames; i++) {
@@ -856,15 +876,16 @@ static bool process_voice(const VoiceConfig& cfg, PdxSlot& slot) {
         } else {
             std::vector<int16_t> mono = wav.to_mono();
             std::vector<int16_t> resampled = resample(mono, wav.sample_rate, target_rate);
+            apply_volume(resampled, cfg.volume);
             slot.data = encode_pcm8(resampled);
         }
 
-        printf("  bank %d slot %2d: PCM8 %s @ %d Hz, %zu 字节 (F%d, mode=0x%02X)\n",
+        printf("  bank %d slot %2d: PCM8 %s @ %d Hz, %zu bytes (F%d, mode=0x%02X)\n",
                cfg.bank, cfg.slot_index, mode.stereo ? "stereo" : "mono",
                target_rate, slot.data.size(), cfg.f_mode, mode.mode_code);
 
     } else {
-        fprintf(stderr, "错误: 内部错误，未知格式 '%s'\n", mode.format);
+        fprintf(stderr, "Error: Internal error, unknown format '%s'\n", mode.format);
         return false;
     }
 
@@ -910,12 +931,12 @@ static bool transcode_to_wav(const char* input, std::string& out_wav_path) {
     std::string cmd = "ffmpeg -y -loglevel error -i \"" + std::string(input)
                     + "\" -acodec pcm_s16le -f wav \"" + out_wav_path + "\"";
 
-    printf("  转码: %s → 临时 WAV ...\n", input);
+    printf("  Transcoding: %s -> temp WAV ...\n", input);
     int ret = system(cmd.c_str());
     if (ret != 0) {
-        fprintf(stderr, "错误: ffmpeg 转码失败 (exit=%d)\n"
-                        "       命令: %s\n"
-                        "       请确认已安装 ffmpeg 并在 PATH 中\n", ret, cmd.c_str());
+        fprintf(stderr, "Error: ffmpeg transcode failed (exit=%d)\n"
+                        "       Command: %s\n"
+                        "       Please ensure ffmpeg is installed and in PATH\n", ret, cmd.c_str());
         // 清理可能的残留文件
         remove(out_wav_path.c_str());
         return false;
@@ -931,7 +952,7 @@ static bool transcode_to_wav(const char* input, std::string& out_wav_path) {
 static bool load_raw_pcm(const char* filename, std::vector<uint8_t>& data) {
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
-        fprintf(stderr, "错误: 无法打开文件 '%s'\n", filename);
+        fprintf(stderr, "Error: Cannot open file '%s'\n", filename);
         return false;
     }
     file.seekg(0, std::ios::end);
@@ -967,7 +988,7 @@ static bool parse_manifest(const char* filename, std::vector<VoiceConfig>& confi
                             PcmDriver& out_driver) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        fprintf(stderr, "错误: 无法打开清单文件 '%s'\n", filename);
+        fprintf(stderr, "Error: Cannot open manifest file '%s'\n", filename);
         return false;
     }
 
@@ -1040,17 +1061,17 @@ static bool parse_manifest(const char* filename, std::vector<VoiceConfig>& confi
             if (lower.find("#ex-pcm ") == 0) {
                 int val = atoi(line.c_str() + 8);
                 if (val < 0 || val > 2) {
-                    fprintf(stderr, "错误: 第 %d 行，#ex-pcm 值无效 (0-2): %d\n", line_num, val);
+                    fprintf(stderr, "Error: line %d, invalid #ex-pcm value (0-2): %d\n", line_num, val);
                     return false;
                 }
                 driver = (PcmDriver)val;
-                printf("驱动: %s\n",
-                       driver == DRIVER_NONE ? "纯ADPCM" :
+                printf("Driver: %s\n",
+                       driver == DRIVER_NONE ? "ADPCM only" :
                        driver == DRIVER_PCM8A ? "PCM8A" : "PCM8++");
             } else if (lower.find("#mode ") == 0) {
                 global_f = atoi(line.c_str() + 6);
                 current_f = global_f;
-                printf("全局模式: F%d\n", global_f);
+                printf("Global mode: F%d\n", global_f);
             }
             // #ex-pdx 和其他 # 开头行为注释，忽略
             continue;
@@ -1075,21 +1096,21 @@ static bool parse_manifest(const char* filename, std::vector<VoiceConfig>& confi
             }
             current_f    = new_f;
             current_bank = new_bank;
-            printf("模式切换: F%d @ bank %d\n", current_f, current_bank);
+            printf("Mode switch: F%d @ bank %d\n", current_f, current_bank);
             continue;
         }
 
         // ── 采样条目: N=filename[,hz][,stereo|mono] ──────────
         size_t eq_pos = line.find('=');
         if (eq_pos == std::string::npos) {
-            fprintf(stderr, "错误: 第 %d 行格式错误，缺少 '=': '%s'\n",
+            fprintf(stderr, "Error: line %d, bad format, missing '=': '%s'\n",
                     line_num, line.c_str());
             return false;
         }
 
         int slot_index = atoi(line.substr(0, eq_pos).c_str());
         if (slot_index < 0 || slot_index >= PDX_NUM_SLOTS) {
-            fprintf(stderr, "错误: 第 %d 行，槽位号 %d 超出范围 (0-%d)\n",
+            fprintf(stderr, "Error: line %d, slot %d out of range (0-%d)\n",
                     line_num, slot_index, PDX_NUM_SLOTS - 1);
             return false;
         }
@@ -1099,6 +1120,7 @@ static bool parse_manifest(const char* filename, std::vector<VoiceConfig>& confi
         std::string entry_filename;
         int  rate_override = 0;
         int  stereo_override = -1;  // -1=不覆盖, 0=mono, 1=stereo
+        int  volume = 100;          // 音量百分比（默认100=不变）
 
         // 按逗号拆分
         std::vector<std::string> tokens;
@@ -1115,7 +1137,7 @@ static bool parse_manifest(const char* filename, std::vector<VoiceConfig>& confi
         }
 
         if (tokens.empty() || tokens[0].empty()) {
-            fprintf(stderr, "错误: 第 %d 行缺少文件名\n", line_num);
+            fprintf(stderr, "Error: line %d, missing filename\n", line_num);
             return false;
         }
 
@@ -1135,6 +1157,23 @@ static bool parse_manifest(const char* filename, std::vector<VoiceConfig>& confi
                 stereo_override = 1;
             } else if (t == "mono" || t == "Mono" || t == "MONO") {
                 stereo_override = 0;
+            } else if ((t[0] == 'v' || t[0] == 'V') && t.size() > 1) {
+                // 音量参数: v100 / v+50 / v-30
+                char *endp = nullptr;
+                long val = strtol(t.c_str() + 1, &endp, 10);
+                if (endp != t.c_str() + 1 && *endp == '\0') {
+                    if (t[1] == '+' || t[1] == '-') {
+                        // 相对模式: v+50 → 150, v-30 → 70
+                        volume = 100 + (int)val;
+                    } else {
+                        // 绝对模式: v100 → 100, v50 → 50
+                        volume = (int)val;
+                    }
+                    if (volume < 0) volume = 0;
+                } else {
+                    fprintf(stderr, "Warning: line %d, invalid volume parameter '%s'\n",
+                            line_num, t.c_str());
+                }
             } else {
                 // 尝试解析为数字（采样率）
                 char *endp = nullptr;
@@ -1142,7 +1181,7 @@ static bool parse_manifest(const char* filename, std::vector<VoiceConfig>& confi
                 if (endp != t.c_str() && *endp == '\0' && val > 0) {
                     rate_override = (int)val;
                 } else {
-                    fprintf(stderr, "警告: 第 %d 行，忽略未知参数 '%s'\n",
+                    fprintf(stderr, "Warning: line %d, ignoring unknown parameter '%s'\n",
                             line_num, t.c_str());
                 }
             }
@@ -1156,7 +1195,7 @@ static bool parse_manifest(const char* filename, std::vector<VoiceConfig>& confi
             if (!load_raw_pcm(entry_filename.c_str(), slot.data)) {
                 return false;
             }
-            printf("  bank %d slot %2d: raw PCM, %zu 字节 (来自 %s)\n",
+            printf("  bank %d slot %2d: raw PCM, %zu bytes (from %s)\n",
                    current_bank, slot_index, slot.data.size(), entry_filename.c_str());
             raw_slots.push_back(slot);
         } else {
@@ -1168,6 +1207,7 @@ static bool parse_manifest(const char* filename, std::vector<VoiceConfig>& confi
             cfg.driver        = driver;
             cfg.rate_override    = rate_override;
             cfg.stereo_override  = stereo_override;
+            cfg.volume           = volume;
             cfg.wav_filename     = entry_filename;
             configs.push_back(cfg);
         }
@@ -1182,34 +1222,38 @@ static bool parse_manifest(const char* filename, std::vector<VoiceConfig>& confi
 // ============================================================================
 
 static void print_usage(const char* prog) {
-    printf("wav2pdx — X68000 PDX 编译器 (PCM8A / PCM8++ 兼容)\n\n");
-    printf("支持输入格式: WAV, MP3, FLAC, OGG, AIFF, AAC, M4A, WMA 等\n");
-    printf("             (非 WAV 格式通过 ffmpeg 自动转码)\n\n");
-    printf("用法:\n");
-    printf("  单文件模式:\n");
-    printf("    %s -o <output.pdx> -F <f_val> [-d <driver>] [-r <hz>] [-s <slot>] <input>\n\n", prog);
-    printf("  清单模式:\n");
+    printf("wav2pdx -- X68000 PDX compiler (PCM8A / PCM8++ compatible)\n\n");
+    printf("Supported input formats: WAV, MP3, FLAC, OGG, AIFF, AAC, M4A, WMA, etc.\n");
+    printf("                        (non-WAV formats auto-transcoded via ffmpeg)\n\n");
+    printf("Usage:\n");
+    printf("  Single file mode:\n");
+    printf("    %s -o <output.pdx> -F <f_val> [-d <driver>] [-r <hz>] [-s <slot>] [-v <vol>] <input>\n\n", prog);
+    printf("  Manifest mode:\n");
     printf("    %s -o <output.pdx> -m <manifest.pdl>\n\n", prog);
-    printf("选项:\n");
-    printf("  -o <file>    输出 PDX 文件名\n");
-    printf("  -F <n>       F 模式值 (单文件模式, 默认 4)\n");
+    printf("Options:\n");
+    printf("  -o <file>    Output PDX filename\n");
+    printf("  -F <n>       F mode value (single file mode, default 4)\n");
     printf("               F0-F4: ADPCM 3.9k-15.6kHz\n");
-    printf("               F5-F12: PCM8A 扩展模式\n");
-    printf("               F5-F38: PCM8++ 扩展模式\n");
-    printf("  -d <drv>     驱动: none, pcm8a, pcm8pp (默认 pcm8pp)\n");
-    printf("  -r <hz>      采样率覆盖（重采样到指定频率）\n");
-    printf("  -s <0-95>    槽位号 (单文件模式, 默认 0)\n");
-    printf("  -m <file>    清单文件\n");
-    printf("  -h           显示帮助\n\n");
-    printf("依赖: 非 WAV 输入需要 ffmpeg (https://ffmpeg.org)\n\n");
-    printf("清单文件 (#ex-pcm  #mode  F<n>@<bank>  N=filename [hz]):\n");
-    printf("  #ex-pcm 2        驱动: 0=纯ADPCM, 1=PCM8A, 2=PCM8++\n");
-    printf("  #mode 4          全局默认F值\n");
-    printf("  F4@0             切换到 F4 ADPCM, bank 0\n");
-    printf("  F13@1            切换到 F13 PCM8++ 44.1kHz 16bit mono, bank 1\n");
-    printf("  0=kick.wav       slot 0 按当前F模式编码\n");
-    printf("  1=bgm.mp3        slot 1 自动转码 MP3 → WAV\n");
-    printf("  2=vocal.flac,44100  slot 2, 覆盖采样率到 44100Hz\n");
+    printf("               F5-F12: PCM8A extended modes\n");
+    printf("               F5-F38: PCM8++ extended modes\n");
+    printf("  -d <drv>     Driver: none, pcm8a, pcm8pp (default pcm8pp)\n");
+    printf("  -r <hz>      Sample rate override (resample to specified rate)\n");
+    printf("  -s <0-95>    Slot number (single file mode, default 0)\n");
+    printf("  -v <vol>     Volume percent (default 100, e.g. 50=half, 200=double)\n");
+    printf("  -m <file>    Manifest file\n");
+    printf("  -h           Show help\n\n");
+    printf("Dependency: non-WAV input requires ffmpeg (https://ffmpeg.org)\n\n");
+    printf("Manifest file (#ex-pcm  #mode  F<n>@<bank>  N=filename[,hz][,v<vol>]):\n");
+    printf("  #ex-pcm 2        Driver: 0=ADPCM only, 1=PCM8A, 2=PCM8++\n");
+    printf("  #mode 4          Global default F value\n");
+    printf("  F4@0             Switch to F4 ADPCM, bank 0\n");
+    printf("  F13@1            Switch to F13 PCM8++ 44.1kHz 16bit mono, bank 1\n");
+    printf("  0=kick.wav       slot 0, encode with current F mode\n");
+    printf("  1=bgm.mp3        slot 1, auto-transcode MP3 -> WAV\n");
+    printf("  2=vocal.flac,44100       slot 2, override sample rate to 44100Hz\n");
+    printf("  3=pad.wav,v50            slot 3, volume 50%% (half)\n");
+    printf("  4=lead.wav,v+50          slot 4, volume +50 (=150%%)\n");
+    printf("  5=fx.wav,v-30            slot 5, volume -30 (=70%%)\n");
 }
 
 // ============================================================================
@@ -1223,6 +1267,7 @@ int main(int argc, char* argv[]) {
     int f_mode        = 4;           // 默认 F4 = ADPCM 15625Hz
     int slot_index    = 0;
     int rate_override = 0;
+    int volume        = 100;         // 音量百分比（默认100=不变）
     PcmDriver driver  = DRIVER_PCM8PP;
 
     // 解析命令行参数
@@ -1237,13 +1282,15 @@ int main(int argc, char* argv[]) {
             f_mode = atoi(argv[++i]);
         } else if (strcmp(argv[i], "-r") == 0 && i + 1 < argc) {
             rate_override = atoi(argv[++i]);
+        } else if (strcmp(argv[i], "-v") == 0 && i + 1 < argc) {
+            volume = atoi(argv[++i]);
         } else if (strcmp(argv[i], "-d") == 0 && i + 1 < argc) {
             ++i;
             if (strcmp(argv[i], "none") == 0)        driver = DRIVER_NONE;
             else if (strcmp(argv[i], "pcm8a") == 0)  driver = DRIVER_PCM8A;
             else if (strcmp(argv[i], "pcm8pp") == 0) driver = DRIVER_PCM8PP;
             else {
-                fprintf(stderr, "未知驱动: %s (可选: none, pcm8a, pcm8pp)\n", argv[i]);
+                fprintf(stderr, "Unknown driver: %s (options: none, pcm8a, pcm8pp)\n", argv[i]);
                 return 1;
             }
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
@@ -1252,7 +1299,7 @@ int main(int argc, char* argv[]) {
         } else if (argv[i][0] != '-') {
             input_file = argv[i];
         } else {
-            fprintf(stderr, "未知选项: %s\n", argv[i]);
+            fprintf(stderr, "Unknown option: %s\n", argv[i]);
             print_usage(argv[0]);
             return 1;
         }
@@ -1276,13 +1323,13 @@ int main(int argc, char* argv[]) {
             // 输出文件名：同路径同名，扩展名改为 .pdx
             auto_output = std::string(manifest_file, ext - manifest_file) + ".pdx";
             output_file = auto_output.c_str();
-            printf("自动清单模式: %s → %s\n", manifest_file, output_file);
+            printf("Auto manifest mode: %s -> %s\n", manifest_file, output_file);
         }
     }
 
     // 验证
     if (!output_file) {
-        fprintf(stderr, "错误: 必须指定输出文件 (-o)\n\n");
+        fprintf(stderr, "Error: Must specify output file (-o)\n\n");
         print_usage(argv[0]);
         return 1;
     }
@@ -1297,7 +1344,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         if (configs.empty() && slots.empty()) {
-            fprintf(stderr, "错误: 清单文件为空\n");
+            fprintf(stderr, "Error: Manifest file is empty\n");
             return 1;
         }
     } else if (input_file) {
@@ -1309,20 +1356,21 @@ int main(int argc, char* argv[]) {
         cfg.driver          = driver;
         cfg.rate_override   = rate_override;
         cfg.stereo_override = -1;
+        cfg.volume          = volume;
         cfg.wav_filename    = input_file;
         configs.push_back(cfg);
     } else {
-        fprintf(stderr, "错误: 必须指定输入文件或清单文件\n\n");
+        fprintf(stderr, "Error: Must specify input file or manifest file\n\n");
         print_usage(argv[0]);
         return 1;
     }
 
     // 处理所有 voice
-    printf("wav2pdx: 正在编译 %zu 个采样...\n", configs.size() + slots.size());
+    printf("wav2pdx: Compiling %zu samples...\n", configs.size() + slots.size());
     for (size_t i = 0; i < configs.size(); i++) {
         PdxSlot slot;
         if (!process_voice(configs[i], slot)) {
-            fprintf(stderr, "处理 '%s' 失败\n", configs[i].wav_filename.c_str());
+            fprintf(stderr, "Processing '%s' failed\n", configs[i].wav_filename.c_str());
             return 1;
         }
         slots.push_back(slot);
@@ -1333,7 +1381,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    printf("完成: 已写入 '%s'\n", output_file);
+    printf("Done: Written to '%s'\n", output_file);
     return 0;
 }
 
